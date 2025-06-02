@@ -1,31 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import './App.css';
+import axios from 'axios';
 
 function App() {
-  const [items, setItems] = useState([]);
+  const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/items')
+    axios.get('http://localhost:5000/api/data')
       .then(response => {
-        setItems(response.data);
+        setData(response.data.message);
+        setError(null);
       })
-      .catch(err => {
-        setError('Failed to fetch items');
-        console.error(err);
+      .catch(error => {
+        setError('Failed to fetch data from the backend.');
       });
   }, []);
 
   return (
     <div className="App">
-      <h1>Items List</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <ul>
-        {items.map(item => (
-          <li key={item.id}>{item.name}</li>
-        ))}
-      </ul>
+      <header className="App-header">
+        <h1>React App</h1>
+        {error ? <p style={{ color: 'red' }}>{error}</p> : null}
+        {data ? <p>Data from backend: {data}</p> : !error ? <p>Loading...</p> : null}
+      </header>
     </div>
   );
 }
