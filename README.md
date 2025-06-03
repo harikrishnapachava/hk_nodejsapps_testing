@@ -9,7 +9,7 @@ Both services are containerized using Docker and integrated with GitHub Actions 
 
 ## Prerequisites
 
-- Docker and Docker Compose
+- Docker
 - Node.js (version 20)
 - GitHub account with repository access
 - DockerHub account for pushing images (optional for local testing)
@@ -41,29 +41,47 @@ cd microservices_code_repo
 - Create a `.env` file in `nodeapp/` with the following content, updating the values as needed:
   ```
   DB_USER=postgres
-  DB_HOST=postgres
+  DB_HOST=localhost
   DB_NAME=mydb
   DB_PASSWORD=yourpassword
   DB_PORT=5432
   ```
 
-### 4. Run the Application Locally
-- Ensure `docker-compose.yml` and `init.sql` are in the root directory.
-- Start the services using Docker Compose:
+### 4. Set Up the Postgres Database
+- Run a Postgres container:
   ```bash
-  docker-compose up --build
+  docker run --name postgres-db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=yourpassword -e POSTGRES_DB=mydb -p 5432:5432 -v $(pwd)/init.sql:/docker-entrypoint-initdb.d/init.sql -d postgres:latest
   ```
-- The React frontend will be available at `http://localhost:3000`.
-- The Node.js backend API will be accessible at `http://localhost:5000/api/items`.
+- The `init.sql` script will initialize the database with a sample `items` table.
 
-### 5. Verify the Setup
-- Open `http://localhost:3000` in your browser to see the list of items fetched from the backend.
+### 5. Build and Run the Backend (nodeapp)
+- Build the Docker image for `nodeapp`:
+  ```bash
+  docker build -t nodeapp:latest ./nodeapp
+  ```
+- Run the `nodeapp` container:
+  ```bash
+  docker run --name nodeapp -p 5000:5000 --env-file nodeapp/.env -d nodeapp:latest
+  ```
+
+### 6. Build and Run the Frontend (reactapp)
+- Build the Docker image for `reactapp`:
+  ```bash
+  docker build -t reactapp:latest ./reactapp
+  ```
+- Run the `reactapp` container:
+  ```bash
+  docker run --name reactapp -p 3000:3000 -d reactapp:latest
+  ```
+
+### 7. Verify the Setup
+- Open `http://localhost:3000` in your browser to see the React frontend fetching data from the backend.
 - Use a tool like `curl` or Postman to test the API:
   ```bash
-  curl http://localhost:5000/api/items
+  curl http://localhost:5000/api/data
   ```
 
-### 6. CI/CD with GitHub Actions
+### 8. CI/CD with GitHub Actions
 - The repository includes GitHub Actions workflows (`reactapp_cicd.yml` and `nodeapp_cicd.yml`) in `.github/workflows/`.
 - Configure the following secrets in your GitHub repository settings:
   - `DOCKERHUB_USERNAME`: Your DockerHub username
@@ -75,21 +93,17 @@ cd microservices_code_repo
   - Build and push Docker images to DockerHub
   - Update the Helm chart tag in the `k8s_manifests_repo` repository
 
-### 7. Database Initialization
-- The `init.sql` file creates a table `items` and inserts sample data. Modify it as needed for your use case.
-- The Postgres container is configured to use this script on startup.
-
 ## Notes
-- The React app fetches data from the backend at `http://localhost:5000/api/items`. Update the URL in `App.js` if your backend is hosted elsewhere.
+- The React app fetches data from the backend at `http://localhost:5000/api/data`. Update the URL in `App.js` if your backend is hosted elsewhere.
 - Ensure the `.env` file in `nodeapp/` matches your Postgres configuration.
 - The GitHub Actions workflows assume you have secrets (`DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `TOKEN`) set in your repository settings.
-- The Postgres container initializes with a sample table `items`. Modify `init.sql` as needed for your use case.
 
 ## Troubleshooting
 - If the frontend fails to load, ensure the backend is running and the API endpoint is correct in `reactapp/src/App.js`.
 - Check Docker logs if services fail to start:
   ```bash
-  docker-compose logs
+  docker logs nodeapp
+  docker logs reactapp
   ```
 - Ensure all environment variables in `.env` match your Postgres setup.
 
